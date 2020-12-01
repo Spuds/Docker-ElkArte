@@ -1,0 +1,58 @@
+version: '2'
+
+services:
+  src:
+    image: alpine:latest
+    command: ["uptime"]
+    volumes:
+      - src_html:/var/www/
+
+  elk-php-fpm:
+    image: elk-php-fpm
+    build:
+      context: github.com/spuds/docker-elkarte.git#main:php-fpm
+    restart: always
+    container_name: elkarte_php
+    volumes_from:
+      - src
+
+  elk-nginx:
+    image: elk-nginx
+    build:
+      context: github.com/spuds/docker-elkarte.git#main:nginx
+    environment:
+      - NGINX_ACCESS_LOG_FORMAT=timed
+      - NGINX_FAST_CGI_PASS=elk-php-fpm:9000
+    container_name: elkarte_nginx
+    depends_on:
+      - elk-php-fpm
+    volumes_from:
+      - src
+    ports:
+      - 80:80
+
+  db:
+    image: mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: elkarte
+      MYSQL_USER: elkarte
+      MYSQL_PASSWORD: elkarte
+      MYSQL_DATABASE: elkarte
+    restart: always
+    container_name: elkarte_db
+    volumes: 
+      - db_data:/var/lib/mysql
+    expose:
+      - 3306
+
+  adminer:
+    image: adminer:latest
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - 8080:8080
+
+volumes:
+    db_data:
+    src_html:
