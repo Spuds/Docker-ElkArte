@@ -1,5 +1,10 @@
 FROM php:7.4-fpm-alpine
 
+# Use id -u on host, the container will add a www-user with this same value
+# and run under that id so permissions match
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
 RUN set -x && \
     apk update && \
     apk upgrade
@@ -109,6 +114,12 @@ RUN sed -i "s/^;security.limit_extensions =.*/security.limit_extensions = .php .
 COPY php.d /usr/local/etc/php/conf.d
 COPY etc /usr/local/etc/php
 
+# Give access to the volume data
+RUN apk add shadow && \ 
+    usermod -u ${USER_ID} www-data || true && \
+    groupmod -g ${GROUP_ID} www-data || true && \
+    chown -R ${USER_ID}:${GROUP_ID} /var/www
+
 # Remove the dependencies we downloaded to build / compile this beauty
 RUN pecl clear-cache && \ 
     apk del .docker-php-global-dependencies && \
@@ -117,3 +128,6 @@ RUN pecl clear-cache && \
     rm -rf /var/cache/apk/* && \
     docker-php-source delete && \
     php -m
+
+# Run under this id
+USER ${USER_ID}
