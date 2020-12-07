@@ -1,4 +1,4 @@
-FROM php:7.4.13-fpm-alpine3.12
+FROM php:7.4.13-fpm-alpine
 
 # Use id -u on host for teh user you wish to use.  The container will then add a www-user with this same value
 # and run under that id so host<->container permissions match
@@ -16,7 +16,11 @@ RUN apk add --update --no-cache \
     patch \
     bash \
     unzip \
-    postgresql-libs
+    postgresql-libs \
+    libmemcached-libs \
+    zlib
+
+ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
 
 # Install build dependencies
 RUN apk add --update --no-cache --virtual .docker-php-global-dependencies \
@@ -42,7 +46,11 @@ RUN apk add --update --no-cache --virtual .docker-php-global-dependencies \
     # Misc build dependency \
     wget \
     # Build dependency for Postgre \
-    postgresql-dev
+    postgresql-dev \
+    # Build dependency for memcached
+    libmemcached-dev \
+    zlib-dev \
+    cyrus-sasl-dev
 
 # Enable compile and security optimizations
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2"
@@ -91,6 +99,12 @@ RUN git clone https://github.com/xdebug/xdebug.git && \
     cd .. && \
     rm -rf xdebug
 
+# Install memcached
+RUN set -xe && \
+    pecl install memcached && \
+    echo "extension=memcached.so" > /usr/local/etc/php/conf.d/20_memcached.ini && \
+    rm -rf /usr/share/php7 
+
 # Install Composer
 RUN EXPECTED_SIGNATURE=$(wget -q -O - https://composer.github.io/installer.sig) && \
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
@@ -126,6 +140,7 @@ RUN pecl clear-cache && \
     apk del .docker-php-imagick-dependencies && \
     apk del .docker-php-mysql-dependencies && \
     rm -rf /var/cache/apk/* && \
+    rm -rf /tmp/* && \
     docker-php-source delete && \
     php -m
 
