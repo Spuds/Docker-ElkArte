@@ -1,9 +1,9 @@
-FROM php:7.4-fpm-alpine
+FROM php:7.4.13-fpm-alpine3.12
 
-# Use id -u on host, the container will add a www-user with this same value
-# and run under that id so permissions match
-ARG USER_ID=1000
-ARG GROUP_ID=1000
+# Use id -u on host for teh user you wish to use.  The container will then add a www-user with this same value
+# and run under that id so host<->container permissions match
+ARG USER_ID=999
+ARG GROUP_ID=1001
 
 RUN set -x && \
     apk update && \
@@ -114,7 +114,7 @@ RUN sed -i "s/^;security.limit_extensions =.*/security.limit_extensions = .php .
 COPY php.d /usr/local/etc/php/conf.d
 COPY etc /usr/local/etc/php
 
-# Give access to the volume data
+# Give access to the volume data, set www-data in container to match host 
 RUN apk add shadow && \ 
     usermod -u ${USER_ID} www-data || true && \
     groupmod -g ${GROUP_ID} www-data || true && \
