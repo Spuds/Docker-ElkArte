@@ -96,6 +96,9 @@ RUN git clone https://github.com/xdebug/xdebug.git && \
     docker-php-ext-enable xdebug && \
     echo "xdebug.remote_enable=on" >> /usr/local/etc/php/conf.d/xdebug.ini && \
     echo "xdebug.remote_autostart=off" >> /usr/local/etc/php/conf.d/xdebug.ini && \
+    echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/xdebug.ini && \
+    echo "xdebug.host >> /usr/local/etc/php/conf.d/xdebug.ini && \
+    echo "xdebug.discover_client_host=1" >> /usr/local/etc/php/conf.d/xdebug.ini && \
     cd .. && \
     rm -rf xdebug
 
@@ -127,6 +130,7 @@ ENV COMPOSER_ALLOW_SUPERUSER 1
 RUN sed -i "s/^;security.limit_extensions =.*/security.limit_extensions = .php .php7 .php74/g" /usr/local/etc/php-fpm.d/www.conf
 COPY php.d /usr/local/etc/php/conf.d
 COPY etc /usr/local/etc/php
+COPY /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini
 
 # Give access to the volume data, set www-data in container to match host 
 RUN apk add shadow && \ 
