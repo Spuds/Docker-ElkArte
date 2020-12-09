@@ -1,6 +1,6 @@
 FROM php:7.4.13-fpm-alpine
 
-# Use id -u on host for teh user you wish to use.  The container will then add a www-user with this same value
+# Use id -u on host for the user you wish to use.  The container will then add a www-user with this same value
 # and run under that id so host<->container permissions match
 ARG USER_ID=999
 ARG GROUP_ID=1001
@@ -18,7 +18,9 @@ RUN apk add --update --no-cache \
     unzip \
     postgresql-libs \
     libmemcached-libs \
-    zlib
+    zlib \
+    aspell-en \
+    imap-dev
 
 ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
 
@@ -50,7 +52,10 @@ RUN apk add --update --no-cache --virtual .docker-php-global-dependencies \
     # Build dependency for memcached
     libmemcached-dev \
     zlib-dev \
-    cyrus-sasl-dev
+    cyrus-sasl-dev \
+    # Build deps for imap \
+    krb5-dev \
+    aspell-dev
 
 # Enable compile and security optimizations
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2"
@@ -66,7 +71,12 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
         zip \
         exif \
         pgsql \
-        pdo_pgsql
+        pdo_pgsql \
+        pspell 
+
+# Install imap
+RUN docker-php-ext-configure imap --with-kerberos --with-imap-ssl && \
+    docker-php-ext-install imap
 
 # Install APCu from pickle
 RUN pecl install apcu && \
@@ -97,7 +107,7 @@ RUN git clone https://github.com/xdebug/xdebug.git && \
     echo "xdebug.remote_enable=on" >> /usr/local/etc/php/conf.d/xdebug.ini && \
     echo "xdebug.remote_autostart=off" >> /usr/local/etc/php/conf.d/xdebug.ini && \
     echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/xdebug.ini && \
-    echo "xdebug.host >> /usr/local/etc/php/conf.d/xdebug.ini && \
+    echo "xdebug.host" >> /usr/local/etc/php/conf.d/xdebug.ini && \
     echo "xdebug.discover_client_host=1" >> /usr/local/etc/php/conf.d/xdebug.ini && \
     cd .. && \
     rm -rf xdebug
@@ -129,8 +139,8 @@ ENV COMPOSER_ALLOW_SUPERUSER 1
 # Server Configuration
 RUN sed -i "s/^;security.limit_extensions =.*/security.limit_extensions = .php .php7 .php74/g" /usr/local/etc/php-fpm.d/www.conf
 COPY php.d /usr/local/etc/php/conf.d
+# COPY php.ini-development /usr/local/etc/php/php.ini
 COPY etc /usr/local/etc/php
-COPY /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini
 
 # Give access to the volume data, set www-data in container to match host 
 RUN apk add shadow && \ 

@@ -14,9 +14,11 @@ Installed extensions (other than the default ones):
 * exif
 * gd
 * imagick
+* imap
 * memcached
 * mysqli
 * pgsql
+* pspell
 * zip
 * xdebug
 
