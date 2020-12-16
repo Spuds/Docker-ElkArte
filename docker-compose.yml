@@ -7,10 +7,10 @@ services:
     volumes:
       - src_html:/var/www
 
-  elk-php-fpm:
-    image: elk-php-fpm
+  elk-php8-fpm:
+    image: elk-php8-fpm
     build:
-      context: github.com/spuds/docker-elkarte.git#main:php-fpm
+      context: github.com/spuds/docker-elkarte.git#php8:php-fpm
     restart: always
     container_name: elkarte_php
     volumes_from:
@@ -19,13 +19,13 @@ services:
   elk-nginx:
     image: elk-nginx
     build:
-      context: github.com/spuds/docker-elkarte.git#main:nginx
+      context: github.com/spuds/docker-elkarte.git#php8:nginx
     environment:
       - NGINX_ACCESS_LOG_FORMAT=timed
-      - NGINX_FAST_CGI_PASS=elk-php-fpm:9000
+      - NGINX_FAST_CGI_PASS=elk-php8-fpm:9000
     container_name: elkarte_nginx
     depends_on:
-      - elk-php-fpm
+      - elk-php8-fpm
     volumes_from:
       - src
     ports:

@@ -1,4 +1,4 @@
-FROM php:7.4.13-fpm-alpine
+FROM php:8.0.0-fpm-alpine
 
 # Use id -u on host for the user you wish to use.  The container will then add a www-user with this same value
 # and run under that id so host<->container permissions match
@@ -82,14 +82,14 @@ RUN docker-php-ext-configure imap --with-kerberos --with-imap-ssl && \
 RUN pecl install apcu && \
     docker-php-ext-enable apcu;
 
-# Install imagick
-RUN apk add --update --no-cache \
-    imagemagick \
-    imagemagick-libs && \
-    apk add --update --no-cache --virtual .docker-php-imagick-dependencies \
-    imagemagick-dev && \
-    pecl install imagick && \
-    docker-php-ext-enable imagick
+# Install imagick (not yet for php8)
+#RUN apk add --update --no-cache \
+#    imagemagick \
+#    imagemagick-libs && \
+#    apk add --update --no-cache --virtual .docker-php-imagick-dependencies \
+#    imagemagick-dev && \
+#    pecl install imagick && \
+#    docker-php-ext-enable imagick
 
 # Install MySQL
 RUN apk add --update --no-cache --virtual .docker-php-mysql-dependencies \
@@ -113,8 +113,7 @@ RUN git clone https://github.com/xdebug/xdebug.git && \
     rm -rf xdebug
 
 # Install memcached
-RUN set -xe && \
-    pecl install memcached && \
+RUN pecl install memcached && \
     echo "extension=memcached.so" > /usr/local/etc/php/conf.d/20_memcached.ini && \
     rm -rf /usr/share/php7 
 
@@ -149,9 +148,9 @@ RUN apk add shadow && \
     chown -R ${USER_ID}:${GROUP_ID} /var/www
 
 # Remove the dependencies we downloaded to build / compile this beauty
+#apk del .docker-php-imagick-dependencies && \
 RUN pecl clear-cache && \ 
     apk del .docker-php-global-dependencies && \
-    apk del .docker-php-imagick-dependencies && \
     apk del .docker-php-mysql-dependencies && \
     rm -rf /var/cache/apk/* && \
     rm -rf /tmp/* && \
