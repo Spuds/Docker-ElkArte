@@ -20,7 +20,8 @@ RUN apk add --update --no-cache \
     libmemcached-libs \
     zlib \
     aspell-en \
-    imap-dev
+    imap-dev \
+    aspell-dev
 
 ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
 
@@ -54,8 +55,7 @@ RUN apk add --update --no-cache --virtual .docker-php-global-dependencies \
     zlib-dev \
     cyrus-sasl-dev \
     # Build deps for imap \
-    krb5-dev \
-    aspell-dev
+    krb5-dev
 
 # Enable compile and security optimizations
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2"
@@ -63,7 +63,7 @@ ENV PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
 
 # Install php extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
+RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg && \
     docker-php-ext-configure opcache --enable-opcache && \
     docker-php-ext-configure zip && \
     docker-php-ext-install gd \
