@@ -21,7 +21,8 @@ RUN apk add --update --no-cache \
     zlib \
     aspell-en \
     imap-dev \
-    aspell-dev
+    aspell-dev \
+    libpng-dev
 
 ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
 
@@ -30,7 +31,6 @@ RUN apk add --update --no-cache --virtual .docker-php-global-dependencies \
     # Build dependencies for gd \
     freetype-dev \
     libjpeg-turbo-dev \
-    libpng-dev \
     # Build dependency for mbstring \
     oniguruma-dev \
     # Build dependencies for XML part \
