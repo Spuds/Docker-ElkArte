@@ -1,4 +1,4 @@
-FROM php:8.0.2-fpm-alpine
+FROM php:8.0.13-fpm-alpine
 
 # Use id -u on host for the user you wish to use.  The container will then add a www-user with this same value
 # and run under that id so host<->container permissions match
@@ -22,7 +22,8 @@ RUN apk add --update --no-cache \
     aspell-en \
     imap-dev \
     aspell-dev \
-    libpng-dev
+    libpng-dev \
+    libwebp-dev
 
 ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
 
@@ -63,7 +64,7 @@ ENV PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
 
 # Install php extensions
-RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg && \
+RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-webp && \
     docker-php-ext-configure opcache --enable-opcache && \
     docker-php-ext-configure zip && \
     docker-php-ext-install gd \
@@ -83,13 +84,13 @@ RUN pecl install apcu && \
     docker-php-ext-enable apcu;
 
 # Install imagick (not yet for php8)
-#RUN apk add --update --no-cache \
-#    imagemagick \
-#    imagemagick-libs && \
-#    apk add --update --no-cache --virtual .docker-php-imagick-dependencies \
-#    imagemagick-dev && \
-#    pecl install imagick && \
-#    docker-php-ext-enable imagick
+RUN apk add --update --no-cache \
+    imagemagick \
+    imagemagick-libs && \
+    apk add --update --no-cache --virtual .docker-php-imagick-dependencies \
+    imagemagick-dev && \
+    pecl install imagick && \
+    docker-php-ext-enable imagick
 
 # Install MySQL
 RUN apk add --update --no-cache --virtual .docker-php-mysql-dependencies \
