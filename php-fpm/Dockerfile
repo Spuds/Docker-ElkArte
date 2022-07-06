@@ -1,4 +1,4 @@
-FROM php:8.0.13-fpm-alpine
+FROM php:8.1.5-fpm-alpine
 
 # Use id -u on host for the user you wish to use.  The container will then add a www-user with this same value
 # and run under that id so host<->container permissions match
@@ -56,7 +56,9 @@ RUN apk add --update --no-cache --virtual .docker-php-global-dependencies \
     zlib-dev \
     cyrus-sasl-dev \
     # Build deps for imap \
-    krb5-dev
+    krb5-dev \
+    # Build deps xdebug
+    linux-headers
 
 # Enable compile and security optimizations
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2"
@@ -83,7 +85,7 @@ RUN docker-php-ext-configure imap --with-kerberos --with-imap-ssl && \
 RUN pecl install apcu && \
     docker-php-ext-enable apcu;
 
-# Install imagick (not yet for php8)
+# Install imagick
 RUN apk add --update --no-cache \
     imagemagick \
     imagemagick-libs && \
