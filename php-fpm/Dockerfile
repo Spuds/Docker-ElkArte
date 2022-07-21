@@ -23,7 +23,8 @@ RUN apk add --update --no-cache \
     imap-dev \
     aspell-dev \
     libpng-dev \
-    libwebp-dev
+    libwebp-dev \
+	libgomp
 
 ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
 
