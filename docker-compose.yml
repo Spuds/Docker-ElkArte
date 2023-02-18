@@ -2,30 +2,30 @@ version: '2'
 
 services:
   src:
-    image: alpine:3.12.1
+    image: alpine:3.16.4
     command: ["uptime"]
     volumes:
       - src_html:/var/www
 
-  elk-php81-fpm:
-    image: elk-php81-fpm
+  elk-php82-fpm:
+    image: elkarte_php82
     build:
-      context: github.com/spuds/docker-elkarte.git#php81:php-fpm
+      context: github.com/spuds/docker-elkarte.git#php82:php-fpm
     restart: always
-    container_name: elkarte_php81
+    container_name: elkarte_php82
     volumes_from:
       - src
 
   elk-nginx:
     image: elk-nginx
     build:
-      context: github.com/spuds/docker-elkarte.git#php81:nginx
+      context: github.com/spuds/docker-elkarte.git#php82:nginx
     environment:
       - NGINX_ACCESS_LOG_FORMAT=timed
-      - NGINX_FAST_CGI_PASS=elk-php81-fpm:9000
-    container_name: elkarte_nginx81
+      - NGINX_FAST_CGI_PASS=elk-php82-fpm:9000
+    container_name: elkarte_nginx82
     depends_on:
-      - elk-php8-fpm
+      - elk-php82-fpm
     volumes_from:
       - src
     ports:
@@ -39,13 +39,13 @@ services:
       MYSQL_PASSWORD: elkarte
       MYSQL_DATABASE: elkarte
     restart: always
-    container_name: elkarte_db8
+    container_name: elkarte_db82
     command: [
       '--character-set-server=utf8',
       '--collation-server=utf8_unicode_ci'
     ]
     volumes:
-      - db_data8:/var/lib/mysql
+      - db_data82:/var/lib/mysql
     expose:
       - 3306
 
@@ -64,23 +64,23 @@ services:
       - "8025:8025"
 
   sphinx:
-    image: macbre/sphinxsearch:3.3.1
-    container_name: elkarte_sphinx8
+    image: macbre/sphinxsearch:3.2.1
+    container_name: elkarte_sphinx82
     ports:
       - "36307:9312"
       - "36308:9306"
     depends_on:
       - db
     volumes:
-      - db_data8:/opt/sphinx/index
+      - db_data82:/opt/sphinx/index
       - /tank/github/sphinx.conf:/opt/sphinx/conf/sphinx.conf
     mem_limit: 512m
 
 volumes:
-    db_data8:
-    src_html:
-      driver: local
-      driver_opts:
-        type: none
-        o: bind
-        device: /tank/github
+  db_data82:
+  src_html:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /tank/github

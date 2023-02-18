@@ -1,4 +1,4 @@
-FROM php:8.1.5-fpm-alpine
+FROM php:8.2.3-fpm-alpine
 
 # Use id -u on host for the user you wish to use.  The container will then add a www-user with this same value
 # and run under that id so host<->container permissions match
@@ -23,8 +23,7 @@ RUN apk add --update --no-cache \
     imap-dev \
     aspell-dev \
     libpng-dev \
-    libwebp-dev \
-	libgomp
+    libwebp-dev
 
 ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
 
@@ -57,9 +56,7 @@ RUN apk add --update --no-cache --virtual .docker-php-global-dependencies \
     zlib-dev \
     cyrus-sasl-dev \
     # Build deps for imap \
-    krb5-dev \
-    # Build deps xdebug
-    linux-headers
+    krb5-dev
 
 # Enable compile and security optimizations
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2"
@@ -76,7 +73,7 @@ RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-w
         exif \
         pgsql \
         pdo_pgsql \
-        pspell 
+        pspell
 
 # Install imap
 RUN docker-php-ext-configure imap --with-kerberos --with-imap-ssl && \
@@ -87,10 +84,9 @@ RUN pecl install apcu && \
     docker-php-ext-enable apcu;
 
 # Install imagick
-RUN apk add --update --no-cache \
-    imagemagick \
-    imagemagick-libs && \
-    apk add --update --no-cache --virtual .docker-php-imagick-dependencies \
+RUN apk add --update --no-cache ${PHPIZE_DEPS} \
+    imagemagick imagemagick-libs && \
+    apk add --update --no-cache --virtual .docker-php-imagick-dependencies ${PHPIZE_DEPS} \
     imagemagick-dev && \
     pecl install imagick && \
     docker-php-ext-enable imagick
@@ -104,11 +100,12 @@ RUN apk add --update --no-cache --virtual .docker-php-mysql-dependencies \
     pdo_mysql
 
 # Install Xdebug
-RUN git clone https://github.com/xdebug/xdebug.git && \
+RUN apk add --update linux-headers && \
+    git clone https://github.com/xdebug/xdebug.git && \
     cd xdebug && \
     ./rebuild.sh && \
     docker-php-ext-enable xdebug && \
-    echo "xdebug.remote_enable=on" >> /usr/local/etc/php/conf.d/xdebug.ini && \
+    echo "#xdebug.remote_enable=on" >> /usr/local/etc/php/conf.d/xdebug.ini && \
     echo "xdebug.remote_autostart=off" >> /usr/local/etc/php/conf.d/xdebug.ini && \
     echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/xdebug.ini && \
     echo "xdebug.host" >> /usr/local/etc/php/conf.d/xdebug.ini && \
@@ -119,7 +116,7 @@ RUN git clone https://github.com/xdebug/xdebug.git && \
 # Install memcached
 RUN pecl install memcached && \
     echo "extension=memcached.so" > /usr/local/etc/php/conf.d/20_memcached.ini && \
-    rm -rf /usr/share/php7 
+    rm -rf /usr/share/php7
 
 # Install Composer
 RUN EXPECTED_SIGNATURE=$(wget -q -O - https://composer.github.io/installer.sig) && \
@@ -140,20 +137,22 @@ RUN EXPECTED_SIGNATURE=$(wget -q -O - https://composer.github.io/installer.sig) 
 ENV COMPOSER_ALLOW_SUPERUSER 1
 
 # Server Configuration
-RUN sed -i "s/^;security.limit_extensions =.*/security.limit_extensions = .php .php7 .php74/g" /usr/local/etc/php-fpm.d/www.conf
-COPY php.d /usr/local/etc/php/conf.d
-# COPY php.ini-development /usr/local/etc/php/php.ini
-COPY etc /usr/local/etc/php
+RUN sed -i "s/^;security.limit_extensions =.*/security.limit_extensions = .php .php7 .php74 .php8/g" /usr/local/etc/php-fpm.d/www.conf
+COPY php.d/01-security.ini /usr/local/etc/php/conf.d
+COPY php.d/02-memory.ini /usr/local/etc/php/conf.d
+COPY php.d/03-development.ini /usr/local/etc/php/conf.d
+MV /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini
+COPY etc/opcache-recommended.ini /usr/local/etc/php
+COPY etc/php-cli.ini /usr/local/etc/php
 
-# Give access to the volume data, set www-data in container to match host 
-RUN apk add shadow && \ 
+# Give access to the volume data, set www-data in container to match host
+RUN apk add shadow && \
     usermod -u ${USER_ID} www-data || true && \
     groupmod -g ${GROUP_ID} www-data || true && \
     chown -R ${USER_ID}:${GROUP_ID} /var/www
 
 # Remove the dependencies we downloaded to build / compile this beauty
-#apk del .docker-php-imagick-dependencies && \
-RUN pecl clear-cache && \ 
+RUN pecl clear-cache && \
     apk del .docker-php-global-dependencies && \
     apk del .docker-php-mysql-dependencies && \
     rm -rf /var/cache/apk/* && \

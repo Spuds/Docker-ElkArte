@@ -2,11 +2,12 @@
 
 Docker containers to help develop ElkArte, it does not install ElkArte in any of them, you should git pull into the persistant volume that is created.  Containers are based on alpine to help minimize the image sizes.  Two volumes are created for persistance, db_data (/var/lib/mysql) and src_html (/var/www) This will create a stack that uses/builds the following containers.
 
-* nginx 1.19 (standard image with custom configs)
-* php-fpm 8.0.13 (built image based off alpine, adds needed extensions)
-* mariadb 10.5 (standard image, provides the database, can use mysql as well)
-* adminer 4.7 (standard image, provides easy db administartion)
-* mailhog (standard image, provides for email testing)
+* Nginx 1.19 (standard image with custom configs)
+* PHP-FPM 8.2.3 (built image based off alpine, adds needed extensions)
+* MariaDb 10.5 (standard image, provides the database, can use mysql as well)
+* Adminer 4.8 (standard image, provides easy db administartion)
+* MailHog (standard image, provides for email testing)
+* Sphinx 3.2 (standard image, provides advanced search)
 
 Installed extensions (other than the default ones):
 
