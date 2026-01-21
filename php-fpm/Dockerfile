@@ -1,3 +1,5 @@
+FROM php:8.2.29-fpm-alpine
+
 # Use id -u on host for the user you wish to use.
 # The container will then add a www-user with this same value
 # and run under that id so host<->container permissions match
