@@ -1,5 +1,5 @@
 # https://hub.docker.com/_/nginx/
-FROM nginx:1.19.3-alpine
+FROM nginx:1.29.0-alpine
 
 # Copy config files to container
 COPY templates /opt/templates
