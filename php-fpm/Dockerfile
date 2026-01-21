@@ -1,6 +1,5 @@
-FROM php:8.2.3-fpm-alpine
-
-# Use id -u on host for the user you wish to use.  The container will then add a www-user with this same value
+# Use id -u on host for the user you wish to use.
+# The container will then add a www-user with this same value
 # and run under that id so host<->container permissions match
 ARG USER_ID=999
 ARG GROUP_ID=1001
@@ -9,8 +8,10 @@ RUN set -x && \
     apk update && \
     apk upgrade
 
-# Install core dependencies
-RUN apk add --update --no-cache \
+# --------------------------------------------------------------------
+# Runtime dependencies (these MUST stay for extensions to run)
+# --------------------------------------------------------------------
+RUN apk add --no-cache \
     libzip \
     git \
     patch \
@@ -20,54 +21,60 @@ RUN apk add --update --no-cache \
     libmemcached-libs \
     zlib \
     aspell-en \
-    imap-dev \
     aspell-dev \
-    libpng-dev \
-    libwebp-dev
+    libpng \
+    libwebp \
+    freetype \
+    libjpeg-turbo \
+    imagemagick \
+    imagemagick-libs \
+    mysql-client \
+    shadow \
+    krb5 \
+    libxml2 \
+    imap-dev \
+    curl
 
 ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
 
-# Install build dependencies
-RUN apk add --update --no-cache --virtual .docker-php-global-dependencies \
-    # Build dependencies for gd \
+# --------------------------------------------------------------------
+# Build dependencies (will be removed after build)
+# --------------------------------------------------------------------
+RUN apk add --no-cache --virtual .docker-php-build-deps \
     freetype-dev \
     libjpeg-turbo-dev \
-    # Build dependency for mbstring \
+    libpng-dev \
+    libwebp-dev \
     oniguruma-dev \
-    # Build dependencies for XML part \
     libxml2-dev \
-    ldb-dev \
-    # Build dependencies for Zip \
+    samba-dev \
     libzip-dev \
-    # Build dependencies for Pecl \
     autoconf \
     g++ \
     make \
-    # Build dependency for APCu \
     pcre-dev \
-    # Build dependency for Curl
     curl-dev \
-    # Misc build dependency \
     wget \
-    # Build dependency for Postgre \
     postgresql-dev \
-    # Build dependency for memcached
     libmemcached-dev \
     zlib-dev \
     cyrus-sasl-dev \
-    # Build deps for imap \
-    krb5-dev
+    krb5-dev \
+    imagemagick-dev
 
 # Enable compile and security optimizations
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2"
 ENV PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
 
-# Install php extensions
-RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-webp && \
+# --------------------------------------------------------------------
+# PHP extensions
+# --------------------------------------------------------------------
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp && \
     docker-php-ext-configure opcache --enable-opcache && \
     docker-php-ext-configure zip && \
-    docker-php-ext-install gd \
+    docker-php-ext-install -j$(nproc) \
+        gd \
         opcache \
         zip \
         exif \
@@ -79,28 +86,21 @@ RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-w
 RUN docker-php-ext-configure imap --with-kerberos --with-imap-ssl && \
     docker-php-ext-install imap
 
-# Install APCu from pickle
+# Install APCu from pecl
 RUN pecl install apcu && \
-    docker-php-ext-enable apcu;
+    docker-php-ext-enable apcu
 
 # Install imagick
-RUN apk add --update --no-cache ${PHPIZE_DEPS} \
-    imagemagick imagemagick-libs && \
-    apk add --update --no-cache --virtual .docker-php-imagick-dependencies ${PHPIZE_DEPS} \
-    imagemagick-dev && \
-    pecl install imagick && \
+RUN pecl install imagick && \
     docker-php-ext-enable imagick
 
-# Install MySQL
-RUN apk add --update --no-cache --virtual .docker-php-mysql-dependencies \
-    mysql-client && \
-    docker-php-ext-configure mysqli && \
+# Install MySQL extensions
+RUN docker-php-ext-configure mysqli && \
     docker-php-ext-configure pdo_mysql && \
-    docker-php-ext-install mysqli \
-    pdo_mysql
+    docker-php-ext-install mysqli pdo_mysql
 
 # Install Xdebug
-RUN apk add --update linux-headers && \
+RUN apk add --no-cache linux-headers && \
     git clone https://github.com/xdebug/xdebug.git && \
     cd xdebug && \
     ./rebuild.sh && \
@@ -132,31 +132,34 @@ RUN EXPECTED_SIGNATURE=$(wget -q -O - https://composer.github.io/installer.sig) 
         rm composer-setup.php && \
         exit $RESULT && \
         composer -V; \
-    fi;
+    fi
 
 ENV COMPOSER_ALLOW_SUPERUSER 1
 
-# Server Configuration
+# --------------------------------------------------------------------
+# PHP configs
+# --------------------------------------------------------------------
 RUN sed -i "s/^;security.limit_extensions =.*/security.limit_extensions = .php .php7 .php74 .php8/g" /usr/local/etc/php-fpm.d/www.conf
 COPY php.d/01-security.ini /usr/local/etc/php/conf.d
 COPY php.d/02-memory.ini /usr/local/etc/php/conf.d
 COPY php.d/03-development.ini /usr/local/etc/php/conf.d
-MV /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini
+RUN mv /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini
 COPY etc/opcache-recommended.ini /usr/local/etc/php
 COPY etc/php-cli.ini /usr/local/etc/php
 
-# Give access to the volume data, set www-data in container to match host
-RUN apk add shadow && \
-    usermod -u ${USER_ID} www-data || true && \
+# --------------------------------------------------------------------
+# User & permissions
+# --------------------------------------------------------------------
+RUN usermod -u ${USER_ID} www-data || true && \
     groupmod -g ${GROUP_ID} www-data || true && \
     chown -R ${USER_ID}:${GROUP_ID} /var/www
 
-# Remove the dependencies we downloaded to build / compile this beauty
+# --------------------------------------------------------------------
+# Cleanup build dependencies
+# --------------------------------------------------------------------
 RUN pecl clear-cache && \
-    apk del .docker-php-global-dependencies && \
-    apk del .docker-php-mysql-dependencies && \
-    rm -rf /var/cache/apk/* && \
-    rm -rf /tmp/* && \
+    apk del .docker-php-build-deps && \
+    rm -rf /var/cache/apk/* /tmp/* && \
     docker-php-source delete && \
     php -m
 
